@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace Plugin.LocalNotification
@@ -56,9 +57,18 @@ namespace Plugin.LocalNotification
             {
                 return new List<NotificationRequest>();
             }
-
-            var requestList = JsonSerializer.Deserialize<List<NotificationRequest>>(serializedRequestList, MyJsonSerializerOptions);
-            return requestList;
+            try
+            {
+                var requestList = JsonSerializer.Deserialize<List<NotificationRequest>>(serializedRequestList, MyJsonSerializerOptions);
+                return requestList;
+            } catch(Exception ex)
+            {
+                Debug.Write(serializedRequestList);
+                Debug.Write("Fail to deserialized");
+                var requestNewton = Newtonsoft.Json.JsonConvert.DeserializeObject<List<NotificationRequest>>(serializedRequestList);
+                Debug.Write("Newtonsoft works\r\n-------------------");
+                return requestNewton;                
+            }            
         }
 
         internal static string GetRequestListSerialize(List<NotificationRequest> requestList)
