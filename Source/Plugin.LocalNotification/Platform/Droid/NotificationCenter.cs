@@ -6,6 +6,7 @@ using Plugin.LocalNotification.AndroidOption;
 using Plugin.LocalNotification.Platform.Droid;
 using System;
 using System.IO;
+using Plugin.LocalNotification.Json;
 
 namespace Plugin.LocalNotification
 {
@@ -16,10 +17,11 @@ namespace Plugin.LocalNotification
             try
             {
                 Current = new Platform.Droid.NotificationServiceImpl();
+                Serializer = new NotificationSerializer();
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine(ex);
+                Log(ex);
             }
         }
 
@@ -29,41 +31,35 @@ namespace Plugin.LocalNotification
         /// <param name="intent"></param>
         public static bool NotifyNotificationTapped(Intent intent)
         {
-            try
+            if (intent is null)
             {
-                if (intent is null)
-                {
-                    return false;
-                }
-
-                if (intent.HasExtra(ReturnRequest) == false)
-                {
-                    return false;
-                }
-                var requestSerialize = intent.GetStringExtra(ReturnRequest);
-                if (string.IsNullOrWhiteSpace(requestSerialize))
-                {
-                    return false;
-                }
-                var notification = GetRequest(requestSerialize);
-                if (notification is null)
-                {
-                    return false;
-                }
-
-                var subscribeItem = new NotificationEventArgs
-                {
-                    Request = notification
-                };
-
-                Current.OnNotificationTapped(subscribeItem);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Log(ex);
                 return false;
             }
+
+            if (intent.HasExtra(ReturnRequest) == false)
+            {
+                return false;
+            }
+
+            var requestSerialize = intent.GetStringExtra(ReturnRequest);
+            if (string.IsNullOrWhiteSpace(requestSerialize))
+            {
+                return false;
+            }
+
+            var notification = GetRequest(requestSerialize);
+            if (notification is null)
+            {
+                return false;
+            }
+
+            var subscribeItem = new NotificationEventArgs
+            {
+                Request = notification
+            };
+
+            Current.OnNotificationTapped(subscribeItem);
+            return true;
         }
 
         /// <summary>
@@ -209,12 +205,20 @@ namespace Plugin.LocalNotification
         internal static void Log(string message)
         {
             Android.Util.Log.Info(Application.Context.PackageName, message);
+            NotificationLog?.Invoke(new NotificationLogArgs
+            {
+                Message = message
+            });
         }
 
         internal static void Log(Exception ex)
         {
             System.Diagnostics.Debug.WriteLine(ex);
             Android.Util.Log.Error(Application.Context.PackageName, ex.Message);
+            NotificationLog?.Invoke(new NotificationLogArgs
+            {
+                Error = ex
+            });
         }
     }
 }
